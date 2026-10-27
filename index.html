@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07111b">
+<title>Smart Car Clock — OLED Editor</title>
+<style>
+:root{--bg:#07111b;--panel:#0d1b29;--line:#1d5268;--yellow:#ffe000;--blue:#18bfff;--text:#eaf7ff;--muted:#8da9bb;--ok:#54e6a2;--danger:#ff7a7a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#10273a 0,#07111b 58%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:22px 16px 16px;border-bottom:1px solid #17445b;background:#06101a}
+.wrap{max-width:1100px;margin:auto}h1{margin:0;font-size:clamp(22px,4vw,34px);letter-spacing:.04em}h1 span{color:var(--yellow)}.sub{color:var(--muted);margin:8px 0 0;font-size:14px}
+main{max-width:1100px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+.card{background:linear-gradient(145deg,#102234,#091521);border:1px solid #1c4054;border-radius:16px;padding:16px;box-shadow:0 10px 32px #0004;min-width:0}
+h2{font-size:17px;margin:0 0 12px}label{display:block;font-size:13px;color:#b8d2e1;margin:10px 0 5px}
+select,input,button{font:inherit}select,input[type=text]{width:100%;padding:11px;border-radius:9px;background:#07131e;border:1px solid #28516a;color:var(--text)}
+button{border:1px solid #2a627b;border-radius:10px;background:#102b3e;color:var(--text);padding:11px 13px;cursor:pointer;font-weight:650}
+button.primary{background:var(--blue);color:#00121d;border-color:var(--blue)}button.yellow{background:var(--yellow);color:#151500;border-color:var(--yellow)}button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}.small{font-size:12px;color:var(--muted);line-height:1.5}
+.screen-shell{padding:12px;border-radius:14px;background:#020609;border:1px solid #284b5b}
+.screen{aspect-ratio:128/64;width:100%;background:#000;position:relative;overflow:hidden;border:1px solid #31566a;box-shadow:0 0 18px #008dcc22}
+.topbar{height:20%;background:var(--yellow);color:#080a0b;display:flex;align-items:center;justify-content:space-between;padding:0 5%;font-size:clamp(7px,1.8vw,12px);font-weight:800;letter-spacing:.04em}
+.display{height:80%;color:var(--blue);padding:4% 5%;display:flex;flex-direction:column;justify-content:center;position:relative}
+.clock{font-size:clamp(21px,6vw,49px);font-weight:850;line-height:1;letter-spacing:-.045em;white-space:nowrap;text-shadow:0 0 8px #00bfff22}
+.date{font-size:clamp(8px,2vw,14px);margin-top:5px;white-space:nowrap}
+.info{display:flex;justify-content:space-between;gap:5px;align-items:center;font-size:clamp(8px,2vw,15px);margin-top:7px}
+.big-speed{font-size:clamp(24px,6vw,42px);font-weight:850}
+#previewNote{margin:8px 0 0;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.preset{padding:10px;text-align:left;min-height:72px;background:#091723;border-color:#20445a}
+.preset strong{display:block;font-size:13px}.preset span{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.preset.active{border-color:var(--yellow);box-shadow:inset 0 0 0 1px var(--yellow);background:#1d2419}
+.status{padding:10px;border-radius:9px;background:#07131e;border:1px solid #24465a;font-size:13px;margin:10px 0}
+.status b{color:var(--yellow)}.status.connected b{color:var(--ok)}
+hr{border:0;border-top:1px solid #1c3d51;margin:15px 0}
+.notice{border-left:3px solid var(--yellow);padding:9px 11px;background:#201f0c;color:#e7e4bb;border-radius:4px;font-size:12px;line-height:1.55}
+footer{max-width:1100px;padding:0 16px 24px;margin:auto;color:var(--muted);font-size:12px}
+@media(max-width:760px){main{grid-template-columns:1fr;padding:10px}.card{padding:13px}.clock{font-size:clamp(27px,9vw,44px)}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>SMART CAR <span>CLOCK</span></h1>
+<p class="sub">OLED 0.96” • 128×64 • kuning 20% atas / biru 80% bawah • ESP32-C3 BLE</p>
+</div></header>
+<main>
+<section class="card">
+<h2>① Pratinjau OLED</h2>
+<div class="screen-shell">
+ <div class="screen" aria-label="Pratinjau layar OLED">
+  <div class="topbar"><span id="barLeft">ᛒ 12.6V</span><span id="barRight">GPS ▮▮</span></div>
+  <div class="display" id="display">
+   <div class="clock" id="clock">08:45:32</div>
+   <div class="date" id="date">SEN, 27 OKT 2025</div>
+   <div class="info"><span id="weather">☀ 32°C CERAH</span><span id="speed">65 km/h</span></div>
+  </div>
+ </div>
+</div>
+<p id="previewNote">Pratinjau ilustratif; tampilan akhir mengikuti font dan ikon yang ditanam pada firmware ESP32.</p>
+<hr>
+<h2>② Pilih model siap pakai</h2>
+<div class="grid" id="presets"></div>
+<hr>
+<label for="customName">Teks kecil (opsional)</label>
+<input id="customName" type="text" maxlength="16" placeholder="Contoh: MY CAR">
+<div class="row" style="margin-top:10px">
+ <button id="toggleSeconds" class="yellow">Detik: tampil</button>
+ <button id="toggleWeather">Cuaca: tampil</button>
+ <button id="toggleSpeed">GPS speed: tampil</button>
+</div>
+</section>
+<section class="card">
+<h2>③ Hubungkan ke ESP32-C3</h2>
+<div class="notice">Web ini mengirim <b>pengaturan tampilan</b> melalui Bluetooth BLE. Firmware penerima harus dipasang satu kali terlebih dahulu. Web tidak mengunggah firmware atau mengubah program ESP32.</div>
+<div class="status" id="bleStatus">Status: <b>Belum terhubung</b></div>
+<div class="row">
+ <button class="primary" id="connect">Hubungkan Bluetooth</button>
+ <button id="disconnect" disabled>Putuskan</button>
+</div>
+<div class="row" style="margin-top:9px">
+ <button class="yellow" id="send" disabled>Kirim tampilan ke OLED</button>
+ <button id="syncTime" disabled>Sinkronkan waktu HP</button>
+</div>
+<p class="small">Gunakan Chrome Android yang mendukung Web Bluetooth dan buka halaman melalui HTTPS. Jika file dibuka langsung dari penyimpanan HP, dukungan Bluetooth mungkin tidak tersedia.</p>
+<hr>
+<h2>④ Data yang akan dikirim</h2>
+<label>Model terpilih</label><input id="chosen" type="text" readonly value="01 — Jam + Cuaca">
+<label>Konfigurasi JSON (pratinjau)</label>
+<textarea id="json" readonly style="width:100%;min-height:165px;resize:vertical;padding:10px;border-radius:9px;background:#050e16;color:#7ddcff;border:1px solid #28516a;font:12px ui-monospace,monospace"></textarea>
+<div class="row">
+ <button id="downloadConfig">Simpan konfigurasi</button>
+ <button id="reset">Reset pilihan</button>
+</div>
+<hr>
+<h2>⑤ Catatan integrasi firmware</h2>
+<p class="small">Firmware harus memakai UUID BLE yang sama dengan web di bawah ini dan membaca JSON yang dikirim. Prototipe ini menyiapkan protokol dan pilihan layout; agar OLED fisik berubah, firmware ESP32 perlu mendukung service/characteristic BLE serta renderer untuk model-model ini.</p>
+<p class="small"><b>UUID service:</b> <code>7d2ea28a-f7bd-485a-bd9d-92ad6ecfe93e</code><br><b>UUID karakteristik tulis:</b> <code>7d2ea28b-f7bd-485a-bd9d-92ad6ecfe93e</code></p>
+</section>
+</main>
+<footer>Smart Car Clock • Waktu dan GPS berasal dari HP; data cuaca memerlukan internet di HP. Kecepatan GPS dapat terlambat atau tidak tersedia saat sinyal lokasi buruk. Jangan mengoperasikan web saat mengemudi.</footer>
+<script>
+const SERVICE_UUID='7d2ea28a-f7bd-485a-bd9d-92ad6ecfe93e';
+const CHAR_UUID='7d2ea28b-f7bd-485a-bd9d-92ad6ecfe93e';
+const layouts=[
+ ['Jam + Cuaca','Jam besar, tanggal, cuaca, kecepatan'],
+ ['Speed + Jam + Cuaca','Kecepatan utama dengan jam'],
+ ['GPS + Kecepatan','Kompas, kecepatan, jam'],
+ ['Jam + Cuaca Berawan','Jam dan cuaca ringkas'],
+ ['Speed + Lokasi','Kecepatan dan lokasi GPS'],
+ ['Cuaca + Jam + Lokasi','Cuaca, jam, lokasi'],
+ ['Jam + Cuaca + Heading','Jam, cuaca, arah perjalanan'],
+ ['Speedometer Sport','Speedometer besar'],
+ ['Travel / Adventure','Lokasi, cuaca, kecepatan'],
+ ['Split Screen','Jam dan informasi terbagi'],
+ ['Classic Digital','Jam klasik besar'],
+ ['GPS + Speed + Cuaca','Informasi perjalanan lengkap'],
+ ['Jam + Cuaca + Sinyal','Jam, cuaca, status koneksi'],
+ ['Driving Mode','Kecepatan, jam, cuaca'],
+ ['Sporty','Mobil sporty, speed dan cuaca'],
+ ['Mode Malam','Tampilan redup untuk malam']
+];
+let selected=0, showSeconds=true, showWeather=true, showSpeed=true, device=null, characteristic=null;
+const $=id=>document.getElementById(id);
+const buttons=[];
+layouts.forEach((item,i)=>{const b=document.createElement('button');b.className='preset'+(i===0?' active':'');b.innerHTML=`<strong>${String(i+1).padStart(2,'0')} — ${item[0]}</strong><span>${item[1]}</span>`;b.onclick=()=>choose(i);$('presets').appendChild(b);buttons.push(b)});
+function choose(i){selected=i;buttons.forEach((b,j)=>b.classList.toggle('active',i===j));$('chosen').value=String(i+1).padStart(2,'0')+' — '+layouts[i][0];render();updateJSON()}
+function render(){
+ const now=new Date();
+ let time=now.toLocaleTimeString('id-ID',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+ if(!showSeconds)time=time.slice(0,5);
+ $('clock').textContent=time;
+ $('date').textContent=now.toLocaleDateString('id-ID',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+ $('weather').style.display=showWeather?'':'none';$('speed').style.display=showSpeed?'':'none';
+ const n=$('customName').value.trim();$('barLeft').textContent=n||'ᛒ 12.6V';
+ const names=[
+  ['clock','date','weather','speed'],
+  ['speed','clock','weather','date'],
+  ['speed','clock','date','weather'],
+  ['clock','date','weather'],
+  ['speed','date','location'],
+  ['weather','clock','location'],
+  ['clock','weather','heading'],
+  ['speed','clock','weather'],
+  ['location','clock','weather','speed'],
+  ['clock','weather','speed'],
+  ['clock','date'],
+  ['speed','clock','weather','location'],
+  ['clock','weather','date'],
+  ['speed','clock','weather'],
+  ['speed','clock','weather'],
+  ['clock','weather']
+ ];
+ const d=$('display');d.style.flexDirection='column';d.style.alignItems='';d.style.textAlign='';
+ if([1,4,7,11,13,14].includes(selected)){d.style.flexDirection='row';d.style.alignItems='center';d.style.justifyContent='space-around';$('clock').style.fontSize='clamp(15px,4vw,31px)';$('date').style.fontSize='clamp(7px,1.5vw,11px)';}
+ else {$('clock').style.fontSize='';$('date').style.fontSize='';}
+ if(selected===7){$('clock').textContent='65';$('date').textContent='km/h';$('weather').textContent='☀ 32°C';$('speed').textContent='08:45:32';}
+ else if(selected===2){$('weather').textContent='➤ N  •  315°';}
+ else {$('weather').textContent='☀ 32°C CERAH';$('speed').textContent='65 km/h';}
+ if(selected===15){$('display').style.opacity='.65'}else{$('display').style.opacity='1'}
+}
+function config(){
+ return {protocol:'smart-car-clock-v1',layout_id:selected+1,layout_name:layouts[selected][0],display:{width:128,height:64,top_band_yellow_percent:20,main_area_blue_percent:80,show_seconds:showSeconds,show_weather:showWeather,show_gps_speed:showSpeed,custom_text:$('customName').value.trim()},data_source:{time:'phone',gps_speed:'phone_gps_via_web',weather:'phone_web_internet'},sent_at:new Date().toISOString()};
+}
+function updateJSON(){$('json').value=JSON.stringify(config(),null,2)}
+function setStatus(msg,connected=false){$('bleStatus').innerHTML='Status: <b>'+msg+'</b>';$('bleStatus').classList.toggle('connected',connected);$('connect').disabled=connected;$('disconnect').disabled=!connected;$('send').disabled=!connected;$('syncTime').disabled=!connected}
+async function connectBLE(){
+ if(!navigator.bluetooth){alert('Browser ini tidak mendukung Web Bluetooth. Coba Chrome Android dan buka halaman melalui HTTPS.');return}
+ try{device=await navigator.bluetooth.requestDevice({filters:[{services:[SERVICE_UUID]}]});device.addEventListener('gattserverdisconnected',()=>{characteristic=null;setStatus('Terputus',false)});
+ const server=await device.gatt.connect();const service=await server.getPrimaryService(SERVICE_UUID);characteristic=await service.getCharacteristic(CHAR_UUID);setStatus('Terhubung ke '+(device.name||'ESP32-C3'),true)
+ }catch(e){setStatus('Gagal terhubung: '+e.message,false)}
+}
+async function sendPayload(payload){
+ if(!characteristic){alert('Hubungkan ke ESP32 terlebih dahulu.');return}
+ const bytes=new TextEncoder().encode(JSON.stringify(payload));
+ // BLE characteristic payload is limited by negotiated MTU; this config is kept compact.
+ try{if(characteristic.writeValueWithResponse)await characteristic.writeValueWithResponse(bytes);else await characteristic.writeValue(bytes);alert('Konfigurasi dikirim. Pastikan firmware ESP32 mendukung protokol Smart Car Clock.')}
+ catch(e){alert('Gagal mengirim: '+e.message+'. Jika data terlalu besar, firmware perlu mendukung pengiriman bertahap.')}
+}
+$('connect').onclick=connectBLE;
+$('disconnect').onclick=()=>{if(device?.gatt?.connected)device.gatt.disconnect();characteristic=null;setStatus('Belum terhubung',false)};
+$('send').onclick=()=>sendPayload(config());
+$('syncTime').onclick=()=>sendPayload({protocol:'smart-car-clock-v1',command:'sync_time',epoch_ms:Date.now(),iso:new Date().toISOString()});
+$('toggleSeconds').onclick=()=>{showSeconds=!showSeconds;$('toggleSeconds').textContent='Detik: '+(showSeconds?'tampil':'sembunyi');render();updateJSON()};
+$('toggleWeather').onclick=()=>{showWeather=!showWeather;$('toggleWeather').textContent='Cuaca: '+(showWeather?'tampil':'sembunyi');render();updateJSON()};
+$('toggleSpeed').onclick=()=>{showSpeed=!showSpeed;$('toggleSpeed').textContent='GPS speed: '+(showSpeed?'tampil':'sembunyi');render();updateJSON()};
+$('customName').addEventListener('input',()=>{render();updateJSON()});
+$('downloadConfig').onclick=()=>{const blob=new Blob([JSON.stringify(config(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='smart-car-clock-config.json';a.click();URL.revokeObjectURL(a.href)};
+$('reset').onclick=()=>{showSeconds=showWeather=showSpeed=true;$('customName').value='';$('toggleSeconds').textContent='Detik: tampil';$('toggleWeather').textContent='Cuaca: tampil';$('toggleSpeed').textContent='GPS speed: tampil';choose(0)};
+setInterval(render,1000);render();updateJSON();
+</script>
+</body>
+</html>
